@@ -4,6 +4,8 @@ from src.constants.http_status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_
 from flask import Blueprint, app, request, jsonify
 import validators
 from src.database import User, db
+from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
+
 
 auth = Blueprint('auth', __name__, url_prefix='/api/v1/auth')
 
@@ -46,8 +48,49 @@ def register():
     }), HTTP_201_CREATED
 
 
-    return 'User created successfully'
+    
+@auth.route('/login', methods=['POST'])
+def login():
+    email = request.json.get('email', '')
+    password = request.json.get('password', '')
 
-@auth.route('/me', methods=['GET'])
+    user = User.query.filter_by(email=email).first()
+
+    if user:
+        is_pass_correct = check_password_hash(user.password, password)
+
+        if is_pass_correct:
+            refresh = create_refresh_token(identity=user.id)
+            access = create_access_token(identity=user.id)
+
+            return jsonify({
+                'user': {
+                    'refresh': refresh,
+                    'access': access,
+                    'username': user.username,
+                    'email': user.email
+                }
+
+            }), HTTP_200_OK
+
+    return jsonify({'error': 'Wrong credentials'}), HTTP_401_UNAUTHORIZED
+
+@auth.get("/me")
+@jwt_required()
 def me():
-    return {'user': 'me'}
+    user_id = get_jwt_identity()
+    user = User.query.filter_by(id=user_id).first()
+    return jsonify({
+        'username': user.username,
+        'email': user.email
+    }), HTTP_200_OK
+
+@auth.get('/token/refresh')
+@jwt_required(refresh=True)
+def refresh_users_token():
+    identity = get_jwt_identity()
+    access = create_access_token(identity=identity)
+
+    return jsonify({
+        'access': access
+    }), HTTP_200_OK
