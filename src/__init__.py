@@ -25,7 +25,11 @@ def create_app(test_config=None):
             SQLALCHEMY_DATABASE_URI=os.environ.get("SQLALCHEMY_DB_URI"),
             SQLALCHEMY_TRACK_MODIFICATION=False,
             JWT_SECRET_KE=os.environ.get('JWT_SECRET_KEY'),
-            UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER')
+            UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER'),
+            SWAGGER={
+                'title': "Bookmarks API",
+                'uiversion': 3
+            }
 
         )
     else:
@@ -37,6 +41,7 @@ def create_app(test_config=None):
     JWTManager(app)
     app.register_blueprint(auth)
     app.register_blueprint(bookmarks)
+    app.register_blueprint(sim)
 
     Swagger(app, config=swagger_config, template=template)
 
