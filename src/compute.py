@@ -17,7 +17,6 @@ face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fronta
 
 current_directory = os.getcwd()
 
-# Define the path to your image folder relative to the current directory
 image_folder = os.path.join(current_directory, 'images')
 upload_folder = os.path.join(current_directory, 'uploads' )
 
@@ -110,7 +109,7 @@ def similarity():
 
         img1 = cv2.imread(id1_path, 0)
         img2 = cv2.imread(id3_path, 0)
-# Check if we have enough images to perform the similarity calculations
+
         if img1 is not None and img2 is not None:
 
             img1_no_faces = crop_faces(cv2.imread(id1_path))
