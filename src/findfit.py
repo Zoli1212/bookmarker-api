@@ -43,7 +43,7 @@ def orb_sim(img1, img2):
 
     matches = bf.match(desc_a, desc_b)
  
-    similar_regions = [i for i in matches if i.distance < 70]  
+    similar_regions = [i for i in matches if i.distance < 40]  
     if len(matches) == 0:
         return 0
     return len(similar_regions) / len(matches)
@@ -108,13 +108,14 @@ def similarity():
         id1_path = os.path.join(image_folder, 'id1.jpg')
         id2_path = os.path.join(image_folder, 'id5.jpg')
         id3_path = os.path.join(upload_folder, unique_filename)
-        img2 = cv2.imread(id3_path, 0)
+        
         fit_image = ''
         percentage = 0
         for image_file in image_files:
                 
 
             img1 = cv2.imread(image_file, 0)
+            img2 = cv2.imread(id3_path, 0)
 
             if img1 is not None and img2 is not None:
 
