@@ -55,6 +55,9 @@ def crop_faces(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
+
+    if len(faces) == 0:
+        return None
     
     for (x, y, w, h) in faces:
         image[y:y+h, x:x+w] = 255 
@@ -63,19 +66,19 @@ def crop_faces(image):
 
 def normalize_score(orb, ssim):
     if orb >= 7.0 and ssim >= 4.0:
-        return round(min(100.0000, max(95.0000, 100 - (orb - 7) * 5)), 4)
+        return round(min(100.0000, max(95.0000, 100 - (orb - 7) * 5)), 4) + ssim / 2
     elif orb >= 6.0 and ssim >= 4.0:
-        return round(min(95.0000, max(90.0000, 95 - (orb - 6) * 5)), 4)
+        return round(min(95.0000, max(90.0000, 95 - (orb - 6) * 5)), 4) + ssim / 2
     elif orb >= 5.0 and ssim >= 4.0:
-        return round(min(90.0000, max(85.0000, 90 - (orb - 5) * 5)), 4)
+        return round(min(90.0000, max(85.0000, 90 - (orb - 5) * 5)), 4) + ssim / 2
     elif orb >= 2.0 and ssim >= 4.0:
-        return round(min(85.0000, max(80.0000, 85 - (orb - 2) * 5)), 4)
+        return round(min(85.0000, max(80.0000, 85 - (orb - 2) * 5)), 4) + ssim / 2
     elif orb >= 2.0 and ssim >= 3.5:
-        return round(min(80.0000, max(75.0000, 80 - (orb - 2) * 5)), 4)
+        return round(min(80.0000, max(75.0000, 80 - (orb - 2) * 5)), 4) + ssim / 2
     elif orb >= 2.0 and ssim >= 3.0:
-        return round(min(75.0000, max(70.0000, 75 - (orb - 2) * 5)), 4)
+        return round(min(75.0000, max(70.0000, 75 - (orb - 2) * 5)), 4) + ssim / 2
     else:
-        return round(max(0.0000, min(70.0000, 5 + (orb - 2) * 5)), 4)
+        return round(max(0.0000, min(70.0000, 5 + (orb - 2) * 5)), 4) + ssim / 2
 
    
 
@@ -112,6 +115,8 @@ def similarity():
 
             img1_no_faces = crop_faces(cv2.imread(id1_path))
             img2_no_faces = crop_faces(cv2.imread(id3_path))
+            if img2_no_faces is None: 
+                return jsonify({ 'error': 'No face detected'})
 
 
             orb_similarity = orb_sim(img1_no_faces, img2_no_faces)
