@@ -7,6 +7,7 @@ from src.auth import auth
 from src.bookmarks import bookmarks
 from src.database import db
 from src.compute import sim
+from src.findfit import fit
 from flask_jwt_extended import JWTManager
 from src.constants.http_status_codes import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR
 from flasgger import Swagger, swag_from
@@ -14,6 +15,11 @@ from src.database import db, Bookmark
 from src.config.swagger import template, swagger_config
 
 from flask_cors import CORS
+
+def get_relative_yaml_path(yaml_filename):
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    yaml_path = os.path.join(current_directory, "docs", yaml_filename)
+    return yaml_path
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -42,11 +48,12 @@ def create_app(test_config=None):
     app.register_blueprint(auth)
     app.register_blueprint(bookmarks)
     app.register_blueprint(sim)
+    app.register_blueprint(fit)
 
     Swagger(app, config=swagger_config, template=template)
 
     @app.get('/<short_url>')
-    @swag_from('./docs/short_url.yaml')
+    @swag_from(get_relative_yaml_path("short_url.yml"))
     def redirect_to_url(short_url):
         bookmark = Bookmark.query.filter_by(short_url=short_url).first_or_404()
 

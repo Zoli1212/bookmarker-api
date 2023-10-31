@@ -10,21 +10,19 @@ import os
 from skimage.metrics import structural_similarity
 from skimage.transform import resize
 import cv2
-import pytesseract
+import glob
 
 
-
-sim = Blueprint("sim", __name__, url_prefix="/api/v1/sim")
+fit = Blueprint("fit", __name__, url_prefix="/api/v1/fit")
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
- 
 
 current_directory = os.getcwd()
 
 image_folder = os.path.join(current_directory, 'images')
 upload_folder = os.path.join(current_directory, 'uploads' )
+file_extension = "*.jpg"
 
-
-
+image_files = glob.glob(os.path.join(image_folder, file_extension))
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 UPLOAD_FOLDER = 'uploads'  
@@ -87,7 +85,7 @@ def normalize_score(orb, ssim):
 
 
 
-@sim.route('/classify', methods=['POST'])
+@fit.route('/classify', methods=['POST'])
 def similarity():
     country = request.args.get('country')
     type = request.args.get('type')
@@ -110,33 +108,37 @@ def similarity():
         id1_path = os.path.join(image_folder, 'id1.jpg')
         id2_path = os.path.join(image_folder, 'id5.jpg')
         id3_path = os.path.join(upload_folder, unique_filename)
-        
-
-        img1 = cv2.imread(id1_path, 0)
         img2 = cv2.imread(id3_path, 0)
-        extracted_text = pytesseract.image_to_string(img2)
+        fit_image = ''
+        percentage = 0
+        for image_file in image_files:
+                
+
+            img1 = cv2.imread(image_file, 0)
+
+            if img1 is not None and img2 is not None:
+
+                img1_no_faces = crop_faces(cv2.imread(id3_path))
+                img2_no_faces = crop_faces(cv2.imread(image_file))
+                if img2_no_faces is None: 
+                    continue
+
+
+                orb_similarity = orb_sim(img1_no_faces, img2_no_faces)
+                print(f"Similarity using ORB between {unique_filename} and {image_file} (without faces) is:", orb_similarity)
+
+                img2_no_faces = resize(img2_no_faces, img1_no_faces.shape, anti_aliasing=True, preserve_range=True)
+                ssim = structural_sim(img1_no_faces, img2_no_faces)
+                print(f"Similarity using SSIM between {unique_filename} and id2 {image_file} is:", ssim)
+                confidence = normalize_score(orb_similarity*10, ssim*10)
+                print(confidence)
+    
+                if confidence > percentage:
+                    percentage = confidence
+                    fit_image = image_file
         
-
-        if img1 is not None and img2 is not None:
-
-            img1_no_faces = crop_faces(cv2.imread(id1_path))
-            img2_no_faces = crop_faces(cv2.imread(id3_path))
-            if img2_no_faces is None: 
-                return jsonify({ 'error': 'No face detected'})
-
-
-            orb_similarity = orb_sim(img1_no_faces, img2_no_faces)
-            print("Similarity using ORB between id1 and id2 (without faces) is:", orb_similarity)
-
-            img2_no_faces = resize(img2_no_faces, img1_no_faces.shape, anti_aliasing=True, preserve_range=True)
-            ssim = structural_sim(img1_no_faces, img2_no_faces)
-            print("Similarity using SSIM between id1 and id2 (without faces) is:", ssim)
-            confidence = normalize_score(orb_similarity*10, ssim*10)
-            result = {'extracted_text': extracted_text,'classification': f'{type}','country': f'{country}', 'confidence': confidence}, HTTP_200_OK
-            
-            return jsonify(result)
-        
-        else:
-            return jsonify({'error': 'Error: One or both of the ID card images could not be loaded.'}), HTTP_500_INTERNAL_SERVER_ERROR
+            else:
+                break
+        return jsonify({ 'confidence': percentage, 'image_path': fit_image})
     else:
         return jsonify({'error': 'error in image processing 2'}), HTTP_500_INTERNAL_SERVER_ERROR
