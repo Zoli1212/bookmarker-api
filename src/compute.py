@@ -10,7 +10,7 @@ import os
 from skimage.metrics import structural_similarity
 from skimage.transform import resize
 import cv2
-import pytesseract
+
 
 
 
