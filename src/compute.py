@@ -10,7 +10,7 @@ import os
 from skimage.metrics import structural_similarity
 from skimage.transform import resize
 import cv2
-import pytesseract
+
 
 
 
@@ -114,7 +114,7 @@ def similarity():
 
         img1 = cv2.imread(id1_path, 0)
         img2 = cv2.imread(id3_path, 0)
-        extracted_text = pytesseract.image_to_string(img2)
+        
         
 
         if img1 is not None and img2 is not None:
@@ -132,7 +132,7 @@ def similarity():
             ssim = structural_sim(img1_no_faces, img2_no_faces)
             print("Similarity using SSIM between id1 and id2 (without faces) is:", ssim)
             confidence = normalize_score(orb_similarity*10, ssim*10)
-            result = {'extracted_text': extracted_text,'classification': f'{type}','country': f'{country}', 'confidence': confidence}, HTTP_200_OK
+            result = {'classification': f'{type}','country': f'{country}', 'confidence': confidence}, HTTP_200_OK
             
             return jsonify(result)
         

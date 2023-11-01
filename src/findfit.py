@@ -66,20 +66,25 @@ def crop_faces(image):
     return image
 
 def normalize_score(orb, ssim):
-    if orb >= 7.0 and ssim >= 4.0:
-        return round(min(100.0000, max(95.0000, 100 - (orb - 7) * 5)), 4) + ssim / 2
-    elif orb >= 6.0 and ssim >= 4.0:
-        return round(min(95.0000, max(90.0000, 95 - (orb - 6) * 5)), 4) + ssim / 2
-    elif orb >= 5.0 and ssim >= 4.0:
-        return round(min(90.0000, max(85.0000, 90 - (orb - 5) * 5)), 4) + ssim / 2
-    elif orb >= 2.0 and ssim >= 4.0:
-        return round(min(85.0000, max(80.0000, 85 - (orb - 2) * 5)), 4) + ssim / 2
-    elif orb >= 2.0 and ssim >= 3.5:
-        return round(min(80.0000, max(75.0000, 80 - (orb - 2) * 5)), 4) + ssim / 2
-    elif orb >= 2.0 and ssim >= 3.0:
-        return round(min(75.0000, max(70.0000, 75 - (orb - 2) * 5)), 4) + ssim / 2
-    else:
-        return round(max(0.0000, min(70.0000, 5 + (orb - 2) * 5)), 4) + ssim / 2
+    try:
+        if orb >= 7.0 and ssim >= 4.0:
+            return round(min(100.0000, max(95.0000, 100 - (orb - 7) * 5)), 4) + ssim / 2
+        elif orb >= 6.0 and ssim >= 4.0:
+            return round(min(95.0000, max(90.0000, 95 - (orb - 6) * 5)), 4) + ssim / 2
+        elif orb >= 5.0 and ssim >= 4.0:
+            return round(min(90.0000, max(85.0000, 90 - (orb - 5) * 5)), 4) + ssim / 2
+        elif orb >= 2.0 and ssim >= 4.0:
+            return round(min(85.0000, max(80.0000, 85 - (orb - 2) * 5)), 4) + ssim / 2
+        elif orb >= 2.0 and ssim >= 3.5:
+            return round(min(80.0000, max(75.0000, 80 - (orb - 2) * 5)), 4) + ssim / 2
+        elif orb >= 2.0 and ssim >= 3.0:
+            return round(min(75.0000, max(70.0000, 75 - (orb - 2) * 5)), 4) + ssim / 2
+        else:
+            return round(max(0.0000, min(70.0000, 5 + (orb - 2) * 5)), 4) + ssim / 2
+    except Exception as e:
+        print(f"An error occurred in normalize_score: {str(e)}")
+        return 0
+
 
    
 
@@ -87,59 +92,64 @@ def normalize_score(orb, ssim):
 
 @fit.route('/classify', methods=['POST'])
 def similarity():
-    country = request.args.get('country')
-    type = request.args.get('type')
-    print(f'{country} {type}')
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image part'})
+    try:
+        country = request.args.get('country')
+        type = request.args.get('type')
+        print(f'{country} {type}')
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image part'})
 
-    file = request.files['image']
+        file = request.files['image']
 
-    if file.filename == '':
-        return jsonify({'error': 'No selected image'}), HTTP_204_NO_CONTENT
+        if file.filename == '':
+            return jsonify({'error': 'No selected image'}), HTTP_204_NO_CONTENT
 
-    if file and allowed_file(file.filename):
-        unique_filename = str(uuid.uuid4()) + os.path.splitext(file.filename)[1]
+        if file and allowed_file(file.filename):
+            unique_filename = str(uuid.uuid4()) + os.path.splitext(file.filename)[1]
 
-        filename = os.path.join(UPLOAD_FOLDER, unique_filename)
-        file.save(filename)
+            filename = os.path.join(UPLOAD_FOLDER, unique_filename)
+            file.save(filename)
 
-      
-        id1_path = os.path.join(image_folder, 'id1.jpg')
-        id2_path = os.path.join(image_folder, 'id5.jpg')
-        id3_path = os.path.join(upload_folder, unique_filename)
         
-        fit_image = ''
-        percentage = 0
-        for image_file in image_files:
-                
-
-            img1 = cv2.imread(image_file, 0)
+            id1_path = os.path.join(image_folder, 'id1.jpg')
+            id2_path = os.path.join(image_folder, 'id5.jpg')
+            id3_path = os.path.join(upload_folder, unique_filename)
+            
+            fit_image = ''
+            percentage = 0
             img2 = cv2.imread(id3_path, 0)
+            for image_file in image_files:
+                    
 
-            if img1 is not None and img2 is not None:
+                img1 = cv2.imread(image_file, 0)
 
-                img1_no_faces = crop_faces(cv2.imread(id3_path))
-                img2_no_faces = crop_faces(cv2.imread(image_file))
-                if img2_no_faces is None: 
-                    continue
+                if img1 is not None and img2 is not None:
+
+                    img1_no_faces = crop_faces(cv2.imread(id3_path))
+                    img2_no_faces = crop_faces(cv2.imread(image_file))
+                    if img2_no_faces is None: 
+                        continue
 
 
-                orb_similarity = orb_sim(img1_no_faces, img2_no_faces)
-                print(f"Similarity using ORB between {unique_filename} and {image_file} (without faces) is:", orb_similarity)
+                    orb_similarity = orb_sim(img1_no_faces, img2_no_faces)
+                    print(f"Similarity using ORB between {unique_filename} and {image_file} (without faces) is:", orb_similarity)
 
-                img2_no_faces = resize(img2_no_faces, img1_no_faces.shape, anti_aliasing=True, preserve_range=True)
-                ssim = structural_sim(img1_no_faces, img2_no_faces)
-                print(f"Similarity using SSIM between {unique_filename} and id2 {image_file} is:", ssim)
-                confidence = normalize_score(orb_similarity*10, ssim*10)
-                print(confidence)
-    
-                if confidence > percentage:
-                    percentage = confidence
-                    fit_image = image_file
+                    img2_no_faces = resize(img2_no_faces, img1_no_faces.shape, anti_aliasing=True, preserve_range=True)
+                    ssim = structural_sim(img1_no_faces, img2_no_faces)
+                    print(f"Similarity using SSIM between {unique_filename} and id2 {image_file} is:", ssim)
+                    confidence = normalize_score(orb_similarity*10, ssim*10)
+                    print(confidence)
         
-            else:
-                break
-        return jsonify({ 'confidence': percentage, 'image_path': fit_image})
-    else:
-        return jsonify({'error': 'error in image processing 2'}), HTTP_500_INTERNAL_SERVER_ERROR
+                    if confidence > percentage:
+                        percentage = confidence
+                        fit_image = image_file
+            
+                else:
+                    break
+            return jsonify({ 'confidence': percentage, 'image_path': fit_image})
+        else:
+            return jsonify({'error': 'error in image processing 2'}), HTTP_500_INTERNAL_SERVER_ERROR
+    except Exception as e:
+        
+        print(f"An error occurred in similarity: {str(e)}")
+        return jsonify({'error': 'An error occurred'}), HTTP_500_INTERNAL_SERVER_ERROR
